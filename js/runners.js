@@ -202,6 +202,9 @@ def __ea_run(setup, code, test):
   }
 
   /* ---------------- JavaScript + API simulada ---------------- */
+  const BLOQUEADOS = ['window', 'self', 'globalThis', 'document', 'location', 'top', 'parent', 'frames', 'opener',
+    'open', 'history', 'navigator', 'localStorage', 'sessionStorage', 'indexedDB', 'XMLHttpRequest', 'WebSocket',
+    'EventSource', 'importScripts', 'Worker', 'SharedWorker'];
   function fmt(v) {
     if (typeof v === 'string') return v;
     if (typeof Response !== 'undefined' && v instanceof Response) return `Response { status: ${v.status}, ok: ${v.ok} }`;
@@ -221,9 +224,13 @@ def __ea_run(setup, code, test):
     if (ex.exports) src = '__ex.get = () => ({' + ex.exports.map(n => `${n}: (() => { try { return ${n}; } catch (e) { return undefined; } })()`).join(', ') + '});\n' + src;
     let result, error = null;
     try {
-      const fn = new Function('fetch', 'console', 'esperar', '__ex', '"use strict";\nreturn (async () => {\n' + src + '\n})();');
+      // Os nomes em BLOQUEADOS viram `undefined` dentro do código do aluno: um trecho colado
+      // de fora não consegue redirecionar a página (location/open), ler o progresso
+      // (localStorage) nem falar com servidores reais (XMLHttpRequest/WebSocket).
+      // Não é um sandbox perfeito, mas fecha os caminhos comuns.
+      const fn = new Function('fetch', 'console', 'esperar', '__ex', ...BLOQUEADOS, '"use strict";\nreturn (async () => {\n' + src + '\n})();');
       result = await Promise.race([
-        fn(fetchFn, cons, sleep, ex_),
+        fn(fetchFn, cons, sleep, ex_, ...BLOQUEADOS.map(() => undefined)),
         new Promise((_, rej) => setTimeout(() => rej(new Error('Tempo esgotado (8s). Há um laço infinito ou uma Promise sem await?')), 8000))
       ]);
     } catch (e) { error = e; }

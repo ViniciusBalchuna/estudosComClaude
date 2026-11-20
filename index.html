@@ -3,6 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Segurança: só carrega código do próprio site e do jsDelivr (Pyodide); bloqueia plugins,
+       troca de <base>, envio de formulários para fora e conexões a domínios desconhecidos. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'wasm-unsafe-eval' 'unsafe-eval'; connect-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self' blob:">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="js/guard.js"></script>
   <title>EstudaAí — Cursos grátis de SQL, Python, APIs e IA</title>
   <meta name="description" content="Cursos gratuitos com teoria, prática validada no navegador, aba Descomplica, exames de retenção e ranking.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
