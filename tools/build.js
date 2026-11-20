@@ -66,8 +66,8 @@ function parseCode(header, lines, file, ln) {
   return item;
 }
 
-function parseFile(file) {
-  const raw = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+function parseFile(file, extraFiles = []) {
+  const raw = [file, ...extraFiles].map(f => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')).join('\n');
   const lines = raw.split('\n');
   let course = null, mod = null, lesson = null, target = null; // target: 'lesson' | 'exam'
   const datasets = {};
@@ -89,9 +89,17 @@ function parseFile(file) {
       continue;
     }
     if ((m = l.match(/^### LESSON (\S+) \| (.+)$/))) {
-      lesson = { id: m[1], title: m[2].trim(), goal: '', content: [], easy: '', practice: [] };
+      lesson = { id: m[1], title: m[2].trim(), goal: '', content: [], easy: '', practice: [], exercises: [] };
       mod.lessons.push(lesson); target = 'lesson'; i++;
       while (i < lines.length && /^(goal|minutes):/.test(lines[i])) { kv(lesson, lines[i]); i++; }
+      continue;
+    }
+    if ((m = l.match(/^### EXTRA (\S+)\s*$/))) {
+      lesson = null;
+      for (const md of course.modules) for (const ls of md.lessons) if (ls.id === m[1]) lesson = ls;
+      if (!lesson) fail(file, ln, 'EXTRA para lição inexistente ' + m[1]);
+      lesson.content.push('', '## Aprofundando', '');
+      target = 'lesson'; i++;
       continue;
     }
     if (/^### EXAM\s*$/.test(l)) { target = 'exam'; lesson = null; i++; continue; }
@@ -110,7 +118,7 @@ function parseFile(file) {
       if (kind === 'descomplica') { if (!lesson) fail(file, ln, 'descomplica fora de lição'); lesson.easy = body.join('\n').trim(); continue; }
       if (kind === 'choice') item = parseChoice(body, file, ln);
       else if (kind === 'text') item = parseText(body, file, ln);
-      else if (kind === 'code') {
+      else if (kind === 'code' || kind === 'exercicio') {
         item = parseCode(header, body, file, ln);
         for (const k of ['setup', 'variant']) {
           if (item[k]) item[k] = item[k].replace(/^#(\w+)\s*$/gm, (_, n) => { if (!(n in datasets)) fail(file, ln, 'dataset desconhecido #' + n); return datasets[n]; });
@@ -118,6 +126,7 @@ function parseFile(file) {
       }
       else fail(file, ln, 'bloco desconhecido ' + kind);
       if (target === 'exam') mod.exam.push(item);
+      else if (lesson && kind === 'exercicio') lesson.exercises.push(item);
       else if (lesson) lesson.practice.push(item);
       else fail(file, ln, 'item fora de lição/exame');
       continue;
@@ -131,18 +140,25 @@ function parseFile(file) {
       ls.content = ls.content.join('\n').trim();
       if (!ls.easy) fail(file, 0, `lição ${ls.id} sem descomplica`);
       if (!ls.practice.length) fail(file, 0, `lição ${ls.id} sem prática`);
+      const nCode = ls.practice.filter(x => x.type === 'code').length + ls.exercises.length;
+      if (process.env.EXIGIR_EXERCICIOS && (ls.exercises.length < 3 || nCode < 4)) fail(file, 0, `lição ${ls.id} com ${ls.exercises.length} exercícios / ${nCode} de código (mínimo 3 / 4)`);
     }
     if (md.exam.length < 4) fail(file, 0, `módulo ${md.id} com exame curto`);
   }
   return course;
 }
 
+function extrasFor(f) {
+  const x = path.join(SRC, f.replace(/\.md$/, '.extra.md'));
+  return fs.existsSync(x) ? [x] : [];
+}
+
 function main() {
-  const files = fs.readdirSync(SRC).filter(f => f.endsWith('.md') && f !== 'FORMATO.md').sort();
+  const files = fs.readdirSync(SRC).filter(f => f.endsWith('.md') && f !== 'FORMATO.md' && !f.endsWith('.extra.md')).sort();
   fs.mkdirSync(OUT, { recursive: true });
   const all = [];
   for (const f of files) {
-    const c = parseFile(path.join(SRC, f));
+    const c = parseFile(path.join(SRC, f), extrasFor(f));
     all.push(c);
     const js = `/* Gerado por tools/build.js a partir de content/${f} — não edite à mão. */\n` +
       `window.COURSES = window.COURSES || [];\nwindow.COURSES.push(${JSON.stringify(c)});\n`;
@@ -150,10 +166,11 @@ function main() {
     const nl = c.modules.reduce((a, m) => a + m.lessons.length, 0);
     const np = c.modules.reduce((a, m) => a + m.lessons.reduce((b, l) => b + l.practice.length, 0), 0);
     const ne = c.modules.reduce((a, m) => a + m.exam.length, 0);
-    console.log(`${c.id}: ${c.modules.length} módulos, ${nl} lições, ${np} práticas, ${ne} questões de exame`);
+    const nx = c.modules.reduce((a, m) => a + m.lessons.reduce((b, l) => b + l.exercises.length, 0), 0);
+    console.log(`${c.id}: ${c.modules.length} módulos, ${nl} lições, ${np} práticas, ${nx} exercícios, ${ne} questões de exame`);
   }
   return all;
 }
 
 if (require.main === module) main();
-module.exports = { parseFile, main };
+module.exports = { parseFile, main, extrasFor };

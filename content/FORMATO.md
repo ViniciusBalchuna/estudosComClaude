@@ -52,3 +52,19 @@ Enunciado em Markdown
 > explicação
 :::
 ```
+
+## Aprofundamento e exercícios extras (`content/<curso>.extra.md`)
+
+O arquivo `<curso>.extra.md` é lido junto com `<curso>.md` (pode usar os mesmos `:::dataset`):
+
+```text
+### EXTRA <id-da-aula>
+Markdown acrescentado ao fim da aula, sob o título "Aprofundando".
+
+:::exercicio sql|python|js [ordered] [exports=f1,f2]
+(mesmas seções de um :::code)
+:::
+```
+
+Os `:::exercicio` aparecem na aba **💻 Exercícios** da aula (dificuldade crescente: o 1º é "Fácil", o último "Desafio").
+`EXIGIR_EXERCICIOS=1 node tools/build.js` falha se alguma aula tiver menos de 3 exercícios ou menos de 4 exercícios de código no total.

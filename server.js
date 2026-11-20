@@ -19,7 +19,15 @@ function load() { try { return JSON.parse(fs.readFileSync(DATA, 'utf8')); } catc
 function persist(db) { fs.mkdirSync(path.dirname(DATA), { recursive: true }); fs.writeFileSync(DATA, JSON.stringify(db, null, 2)); }
 let db = load();
 
-function send(res, status, obj) { res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); }
+const SECURITY_HEADERS = {
+  'X-Frame-Options': 'DENY',                         // não pode ser exibido em iframe de outro site
+  'Content-Security-Policy': "frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Cross-Origin-Opener-Policy': 'same-origin',        // janelas abertas por outros sites não controlam esta
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+};
+function send(res, status, obj) { res.writeHead(status, { ...SECURITY_HEADERS, 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); }
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
@@ -46,10 +54,10 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent(url.pathname);
   if (p === '/') p = '/index.html';
   const file = path.normalize(path.join(ROOT, p));
-  if (!file.startsWith(ROOT) || file.includes(path.sep + 'data' + path.sep) || file.includes(path.sep + '.git')) { res.writeHead(403); return res.end(); }
+  if (!file.startsWith(ROOT) || file.includes(path.sep + 'data' + path.sep) || file.includes(path.sep + '.git')) { res.writeHead(403, SECURITY_HEADERS); return res.end(); }
   fs.readFile(file, (err, buf) => {
-    if (err) { res.writeHead(404); return res.end('404'); }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
+    if (err) { res.writeHead(404, SECURITY_HEADERS); return res.end('404'); }
+    res.writeHead(200, { ...SECURITY_HEADERS, 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream' });
     res.end(buf);
   });
 });

@@ -8,14 +8,14 @@
  */
 const path = require('path');
 const { execFileSync } = require('child_process');
-const { parseFile } = require('./build');
+const { parseFile, extrasFor } = require('./build');
 const fs = require('fs');
 
 global.MockAPI = require('../js/mockapi.js');
 const Runners = require('../js/runners.js');
 
 const only = process.argv[2];
-const files = fs.readdirSync(path.join(__dirname, '..', 'content')).filter(f => f.endsWith('.md') && f !== 'FORMATO.md');
+const files = fs.readdirSync(path.join(__dirname, '..', 'content')).filter(f => f.endsWith('.md') && f !== 'FORMATO.md' && !f.endsWith('.extra.md'));
 
 async function main() {
   let SQL = null;
@@ -23,11 +23,11 @@ async function main() {
   const pyJobs = [];
   let fails = 0, total = 0;
   for (const f of files) {
-    const c = parseFile(path.join(__dirname, '..', 'content', f));
+    const c = parseFile(path.join(__dirname, '..', 'content', f), extrasFor(f));
     if (only && c.id !== only) continue;
-    for (const m of c.modules) for (const l of m.lessons) l.practice.forEach((it, i) => {
+    for (const m of c.modules) for (const l of m.lessons) [...l.practice, ...l.exercises].forEach((it, i) => {
       if (it.type !== 'code') return;
-      const tag = `${c.id}/${l.id}#${i}`;
+      const tag = `${c.id}/${l.id}#${i >= l.practice.length ? 'ex' + (i - l.practice.length + 1) : i}`;
       if (it.lang === 'python') pyJobs.push({ tag, setup: it.setup || '', solution: it.solution, starter: it.starter || '', test: it.test });
       else pending.push({ tag, it });
     });
