@@ -1,6 +1,6 @@
 # EstudaAí — estudosComClaude
 
-Site de cursos gratuitos (estilo plataforma de cursos) com **4 cursos, 64 aulas, 130 práticas e 128 questões de exame**:
+Site de cursos gratuitos (estilo plataforma de cursos) com **4 cursos, 64 aulas, 256 exercícios de código validados automaticamente, 130 práticas no total na aba Pratique e 128 questões de exame**:
 
 | Curso | Conteúdo |
 |---|---|
@@ -11,12 +11,12 @@ Site de cursos gratuitos (estilo plataforma de cursos) com **4 cursos, 64 aulas,
 
 ## Como funciona
 
-- **Cada aula** tem explicação, uma aba **🧸 Descomplica** (fechada, só com o título; ao clicar abre a explicação "para criança") e uma **prática** no fim.
+- **Cada aula** tem explicação com uma seção **Aprofundando** (exemplos comentados, tabelas, erros comuns), uma aba **🧸 Descomplica** (fechada, só com o título; ao clicar abre a explicação "para criança"), uma **prática** no fim e a aba **💻 Exercícios** com 3 exercícios de código em dificuldade crescente (4 exercícios de código por aula no total).
 - **Práticas**: questões de assinalar ou código num **terminal próprio** que valida o **resultado**, não o texto:
   - SQL → SQLite no navegador (sql.js); compara linhas retornadas ou o estado final do banco, inclusive rodando de novo com **dados diferentes** para pegar respostas "chumbadas".
   - Python → Pyodide (CPython em WebAssembly); testes reexecutam o código com outras entradas.
   - JavaScript → `fetch` ligado a uma **API REST simulada** (`https://api.loja.exemplo`) com auth, paginação, ETag, idempotência etc.; o verificador confere as requisições feitas e o estado da API.
-- **Pontuação**: cada curso vale **2400 pts** = 16 aulas × 100 + 4 exames × 200. Acertar de primeira dá nota cheia; errar reduz; ver a solução dá 25%.
+- **Pontuação**: cada curso vale **2400 pts** = 16 aulas × 100 + 4 exames × 200. Em cada aula, 50 pts vêm do Pratique (que libera o exame) e 50 da aba Exercícios. Acertar de primeira dá nota cheia; errar reduz; ver a solução dá 25%.
 - **Exame de fim de módulo**: questões novas, uma por vez, **sem voltar** e com as **lições bloqueadas** até terminar (recarregar a página retoma o exame). Fica a melhor nota.
 - **Ranking e títulos**: 6 títulos por curso (0, 200, 600, 1200, 1800, 2400 pts). Ranking local (perfis do navegador) ou global se rodar o servidor.
 

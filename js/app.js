@@ -168,7 +168,7 @@
     $('#nav-perfil').textContent = '👤 ' + profile().name;
     if (!parts.length) return viewHome();
     if (parts[0] === 'curso' && getCourse(parts[1])) return viewCourse(getCourse(parts[1]));
-    if (parts[0] === 'aula' && getCourse(parts[1])) return viewLesson(getCourse(parts[1]), parts[2]);
+    if (parts[0] === 'aula' && getCourse(parts[1])) return viewLesson(getCourse(parts[1]), parts[2], parts[3]);
     if (parts[0] === 'exame' && getCourse(parts[1])) return viewExam(getCourse(parts[1]), parts[2]);
     if (parts[0] === 'ranking') return viewRanking(parts[1]);
     if (parts[0] === 'perfil') return viewProfile();
@@ -235,7 +235,7 @@
       <div class="card" style="margin-bottom:20px">
         <b>Títulos deste curso</b>
         <div class="titles-list">${c.titles.map((tt, i) => `<span class="${pts >= TITLE_THRESHOLDS[i] ? 'got' : ''}">${esc(tt)} · ${TITLE_THRESHOLDS[i]}</span>`).join('')}</div>
-        <p class="muted" style="font-size:14px;margin-bottom:0">Cada aula vale ${Math.round(lessonValue(c))} pts (acertar de primeira dá a nota cheia) e cada exame de módulo vale ${Math.round(examValue(c))} pts. Curso completo = ${COURSE_TOTAL} pts.</p>
+        <p class="muted" style="font-size:14px;margin-bottom:0">Cada aula vale ${Math.round(lessonValue(c))} pts: metade no Pratique (que libera o exame) e metade na aba 💻 Exercícios. Acertar de primeira dá a nota cheia. Cada exame de módulo vale ${Math.round(examValue(c))} pts. Curso completo = ${COURSE_TOTAL} pts.</p>
       </div>
       ${c.modules.map((m, mi) => {
         const mdone = moduleDone(c, m); const ex = cprog(c.id).exams[m.id];
@@ -243,7 +243,7 @@
           <h2>Módulo ${mi + 1} — ${esc(m.title)}</h2>
           <div class="muted">${esc(m.desc || '')}</div>
           <ul class="lesson-list">
-            ${m.lessons.map(l => { n++; const d = lessonDone(c, l); return `<li class="${d ? 'done' : ''}"><a href="#/aula/${c.id}/${l.id}"><span class="num">#${pad(n)}</span><span>${esc(l.title)}</span><span class="pts">${d ? '✓ ' : ''}${Math.round(lessonPoints(c, l.id))}/${Math.round(lessonValue(c))}</span></a></li>`; }).join('')}
+            ${m.lessons.map(l => { n++; const d = lessonDone(c, l); return `<li class="${d ? 'done' : ''}"><a href="#/aula/${c.id}/${l.id}"><span class="num">#${pad(n)}</span><span>${esc(l.title)}</span><span class="pts">${d ? '✓ ' : ''}${l.exercises.length ? '💻 ' + exCount(c, l) + ' · ' : ''}${Math.round(lessonPoints(c, l.id))}/${Math.round(lessonValue(c))}</span></a></li>`; }).join('')}
             <li><div class="exam-row"><span class="num">📝</span><span><b>Exame do módulo</b><br><span class="muted" style="font-size:14px">${ex ? `Melhor nota: ${ex.best}/${Math.round(examValue(c))} pts · ${ex.attempts} tentativa(s)` : mdone ? 'Liberado!' : 'Conclua todas as aulas do módulo para liberar'}</span></span>
               <button class="btn small" data-exam="${m.id}" ${mdone ? '' : 'disabled'}>${ex ? 'Refazer exame' : 'Fazer exame'}</button></div></li>
           </ul>
@@ -284,7 +284,7 @@
       <div class="mod-title"></div><a href="#/curso/${c.id}">← Visão geral do curso</a></aside>`;
   }
 
-  function viewLesson(c, lessonId) {
+  function viewLesson(c, lessonId, aba) {
     const list = allLessons(c); const idx = list.findIndex(l => l.id === lessonId);
     if (idx === -1) { location.hash = '#/curso/' + c.id; return; }
     const l = list[idx]; const m = l.module;
@@ -299,9 +299,20 @@
           <span class="pill">Aula #${pad(idx + 1)}</span> ${l.minutes ? `<span class="pill">⏱ ${esc(l.minutes)} min</span>` : ''} <span class="pill" id="lesson-pts">${Math.round(lp.points || 0)} / ${Math.round(lessonValue(c))} pts</span>
           <h1>${esc(l.title)}</h1>
           ${l.goal ? `<div class="goal"><b>🎯 Nesta aula:</b> ${inline(l.goal)}</div>` : ''}
-          <div class="content">${md(l.content)}</div>
-          <details class="descomplica"><summary>🧸 Descomplica</summary><div class="easy-body content">${md(l.easy)}</div></details>
-          <section class="practice"><h2>🏋️ Pratique</h2><div id="items"></div></section>
+          <div class="tabs lesson-tabs" role="tablist">
+            <button role="tab" data-aba="aula" class="${aba !== 'exercicios' ? 'active' : ''}">📖 Aula</button>
+            <button role="tab" data-aba="exercicios" class="${aba === 'exercicios' ? 'active' : ''}">💻 Exercícios <span id="ex-count">${exCount(c, l)}</span></button>
+          </div>
+          <div id="tab-aula" class="${aba === 'exercicios' ? 'hidden' : ''}">
+            <div class="content">${md(l.content)}</div>
+            <details class="descomplica"><summary>🧸 Descomplica</summary><div class="easy-body content">${md(l.easy)}</div></details>
+            <section class="practice"><h2>🏋️ Pratique</h2><div id="items"></div></section>
+            ${l.exercises.length ? `<div class="tip">Terminou o Pratique? Vá para a aba <a href="#/aula/${c.id}/${l.id}/exercicios"><b>💻 Exercícios</b></a>: ${l.exercises.length} exercícios de código em dificuldade crescente para fixar o conteúdo.</div>` : ''}
+          </div>
+          <div id="tab-ex" class="${aba === 'exercicios' ? '' : 'hidden'}">
+            <p class="muted">Exercícios de código em dificuldade crescente. Eles valem ${Math.round(lessonValue(c) / 2)} dos ${Math.round(lessonValue(c))} pts da aula (o Pratique vale o resto e é ele que libera o exame). Consulte a aba Aula sempre que precisar.</p>
+            <div id="ex-items"></div>
+          </div>
           <div class="item-actions" style="margin-top:24px">
             ${prev ? `<a class="btn ghost" href="#/aula/${c.id}/${prev.id}">← Aula anterior</a>` : ''}
             <span style="flex:1"></span>
@@ -315,6 +326,57 @@
     highlight($('.easy-body'));
     const box = $('#items');
     l.practice.forEach((it, i) => box.appendChild(renderItem(c, l, it, i)));
+    const exBox = $('#ex-items');
+    const nivel = i => i === 0 ? 'Fácil' : i === l.exercises.length - 1 ? 'Desafio' : 'Médio';
+    l.exercises.forEach((it, i) => {
+      const h = document.createElement('h3'); h.className = 'ex-title';
+      h.innerHTML = `Exercício ${i + 1} <span class="pill">${nivel(i)}</span>`;
+      exBox.appendChild(h);
+      exBox.appendChild(renderItem(c, l, it, 'e' + i));
+    });
+    if (!l.exercises.length) exBox.innerHTML = '<p class="muted">Esta aula ainda não tem exercícios extras.</p>';
+    $$('[data-aba]').forEach(b => b.onclick = () => {
+      history.replaceState(null, '', `#/aula/${c.id}/${l.id}` + (b.dataset.aba === 'exercicios' ? '/exercicios' : ''));
+      $$('[data-aba]').forEach(x => x.classList.toggle('active', x === b));
+      $('#tab-aula').classList.toggle('hidden', b.dataset.aba !== 'aula');
+      $('#tab-ex').classList.toggle('hidden', b.dataset.aba !== 'exercicios');
+    });
+  }
+
+  function exCount(c, l) {
+    const lp = cprog(c.id).lessons[l.id];
+    const feitos = l.exercises.filter((_, i) => lp && lp.items && lp.items['e' + i] && lp.items['e' + i].solved).length;
+    return l.exercises.length ? `(${feitos}/${l.exercises.length})` : '';
+  }
+  // valor de cada item: Pratique = metade da aula, Exercícios = outra metade (se houver)
+  function itemValue(c, l, key) {
+    const V = lessonValue(c);
+    const temEx = l.exercises.length > 0;
+    if (String(key).startsWith('e')) return (V / 2) / l.exercises.length;
+    return (temEx ? V / 2 : V) / l.practice.length;
+  }
+  function recalcLesson(c, l, lp) {
+    let total = 0;
+    for (const k in lp.items) {
+      const st = lp.items[k];
+      if (!st.solved) continue;
+      if (st.factor === undefined) {  // progresso salvo antes da divisão Pratique/Exercícios
+        const antigo = lessonValue(c) / l.practice.length;
+        st.factor = Math.min(1, (st.points || 0) / antigo);
+      }
+      st.points = Math.round(itemValue(c, l, k) * st.factor * 10) / 10;
+      total += st.points;
+    }
+    lp.done = l.practice.every((_, k) => lp.items[k] && lp.items[k].solved);
+    lp.complete = lp.done && l.exercises.every((_, k) => lp.items['e' + k] && lp.items['e' + k].solved);
+    lp.points = lp.complete ? Math.round(total) : Math.round(total * 10) / 10;
+  }
+  function migrate() {
+    for (const p of Object.values(state.profiles)) for (const c of COURSES) {
+      const cp = p.courses[c.id]; if (!cp) continue;
+      for (const l of allLessons(c)) if (cp.lessons[l.id] && cp.lessons[l.id].items) recalcLesson(c, l, cp.lessons[l.id]);
+    }
+    save();
   }
 
   function itemState(c, l, i) {
@@ -326,14 +388,14 @@
   }
   function finalizeItem(c, l, i, factor) {
     const { lp, st } = itemState(c, l, i);
-    const value = lessonValue(c) / l.practice.length;
-    st.solved = true; st.points = Math.round(value * factor * 10) / 10;
-    lp.points = Object.values(lp.items).reduce((a, x) => a + (x.points || 0), 0);
-    lp.done = l.practice.every((_, k) => lp.items[k] && lp.items[k].solved);
-    if (lp.done) lp.points = Math.round(lp.points);
+    const antes = { done: lp.done, complete: lp.complete };
+    st.solved = true; st.factor = factor;
+    recalcLesson(c, l, lp);
     save(); syncScore();
     const el = $('#lesson-pts'); if (el) el.textContent = `${Math.round(lp.points)} / ${Math.round(lessonValue(c))} pts`;
-    if (lp.done) toast(`Aula concluída! +${Math.round(lp.points)} pts em ${c.name}`);
+    const ec = $('#ex-count'); if (ec) ec.textContent = exCount(c, l);
+    if (lp.complete && !antes.complete) toast(`Aula 100% concluída! ${Math.round(lp.points)} pts em ${c.name}`);
+    else if (lp.done && !antes.done) toast(l.exercises.length ? 'Pratique concluído! Agora faça os Exercícios para completar a aula.' : `Aula concluída! +${Math.round(lp.points)} pts`);
   }
   function toast(msg) {
     const t = document.createElement('div');
@@ -571,5 +633,6 @@
     $('#del').onclick = () => { if (confirm('Apagar todo o progresso de ' + p.name + '?')) { p.courses = {}; save(); syncScore(); route(); } };
   }
 
+  migrate();
   route();
 })();
