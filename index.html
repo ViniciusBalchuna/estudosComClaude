@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EstudaAí — Cursos grátis de SQL, Python, APIs e IA</title>
+  <meta name="description" content="Cursos gratuitos com teoria, prática validada no navegador, aba Descomplica, exames de retenção e ranking.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>">
+  <link rel="stylesheet" href="vendor/hljs.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar" id="topbar">
+    <a class="brand" href="#/">🎓 <span>Estuda<b>Aí</b></span></a>
+    <nav class="nav" id="nav">
+      <a href="#/" data-nav="home">Cursos</a>
+      <a href="#/ranking" data-nav="ranking">Ranking</a>
+      <a href="#/perfil" data-nav="perfil" id="nav-perfil">Perfil</a>
+    </nav>
+  </header>
+  <div id="exam-banner" class="exam-banner hidden">📝 Exame em andamento — as lições ficam bloqueadas até você terminar.</div>
+  <main id="app" class="app"></main>
+  <footer class="footer">
+    Conteúdo criado para estudo. Os terminais rodam 100% no seu navegador (SQLite via sql.js, Python via Pyodide, JavaScript nativo).
+  </footer>
+
+  <script src="vendor/highlight.min.js"></script>
+  <script src="vendor/sql-wasm.js"></script>
+  <script src="js/courses/sql.js"></script>
+  <script src="js/courses/python.js"></script>
+  <script src="js/courses/apis.js"></script>
+  <script src="js/courses/ia.js"></script>
+  <script src="js/mockapi.js"></script>
+  <script src="js/runners.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
